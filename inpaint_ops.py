@@ -160,12 +160,12 @@ def brush_stroke_mask(FLAGS, name='mask'):
         tf.Tensor: output with shape [1, H, W, 1]
 
     """
-    min_num_vertex = 4
-    max_num_vertex = 12
+    min_num_vertex = 2
+    max_num_vertex = 6
     mean_angle = 2*math.pi / 5
     angle_range = 2*math.pi / 15
-    min_width = 12
-    max_width = 40
+    min_width = 15
+    max_width = 30
     def generate_mask(H, W):
         average_radius = math.sqrt(H*H+W*W) / 8
         mask = Image.new('L', (W, H), 0)
@@ -183,13 +183,13 @@ def brush_stroke_mask(FLAGS, name='mask'):
                     angles.append(np.random.uniform(angle_min, angle_max))
 
             h, w = mask.size
-            vertex.append((int(np.random.randint(0, w)), int(np.random.randint(0, h))))
+            vertex.append((int(np.random.randint(0.2*w, 0.8*w)), int(np.random.randint(0.2*h, 0.8*h))))
             for i in range(num_vertex):
                 r = np.clip(
                     np.random.normal(loc=average_radius, scale=average_radius//2),
                     0, 2*average_radius)
-                new_x = np.clip(vertex[-1][0] + r * math.cos(angles[i]), 0, w)
-                new_y = np.clip(vertex[-1][1] + r * math.sin(angles[i]), 0, h)
+                new_x = np.clip(vertex[-1][0] + r * math.cos(angles[i]), 0.2*w, 0.8*w)
+                new_y = np.clip(vertex[-1][1] + r * math.sin(angles[i]), 0.2*h, 0.8*h)
                 vertex.append((int(new_x), int(new_y)))
 
             draw = ImageDraw.Draw(mask)
@@ -283,7 +283,7 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1,
     raw_w = tf.extract_image_patches(
         b, [1,kernel,kernel,1], [1,rate*stride,rate*stride,1], [1,1,1,1], padding='SAME')
     raw_w = tf.reshape(raw_w, [raw_int_bs[0], -1, kernel, kernel, raw_int_bs[3]])
-    raw_w = tf.transpose(raw_w, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw
+    raw_w = tf.transpose(raw_w, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw 24*4*4*96*1024
     # downscaling foreground option: downscaling both foreground and
     # background for matching and use original background for reconstruction.
     f = resize(f, scale=1./rate, func=tf.image.resize_nearest_neighbor)
@@ -299,14 +299,14 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1,
     w = tf.extract_image_patches(
         b, [1,ksize,ksize,1], [1,stride,stride,1], [1,1,1,1], padding='SAME')
     w = tf.reshape(w, [int_fs[0], -1, ksize, ksize, int_fs[3]])
-    w = tf.transpose(w, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw
+    w = tf.transpose(w, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw 24*3*3*96*1024
     # process mask
     if mask is None:
         mask = tf.zeros([1, bs[1], bs[2], 1])
     m = tf.extract_image_patches(
         mask, [1,ksize,ksize,1], [1,stride,stride,1], [1,1,1,1], padding='SAME')
     m = tf.reshape(m, [1, -1, ksize, ksize, 1])
-    m = tf.transpose(m, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw
+    m = tf.transpose(m, [0, 2, 3, 4, 1])  # transpose to b*k*k*c*hw 1*3*3*1*1024
     m = m[0]
     mm = tf.cast(tf.equal(tf.reduce_mean(m, axis=[0,1,2], keep_dims=True), 0.), tf.float32)
     w_groups = tf.split(w, int_bs[0], axis=0)

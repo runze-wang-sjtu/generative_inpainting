@@ -7,10 +7,10 @@ import neuralgym as ng
 from inpaint_model import InpaintCAModel
 
 
-def multigpu_graph_def(model, FLAGS, data, gpu_id=0, loss_type='g'):
+def multigpu_graph_def(model, FLAGS, data, gpu_id=3, loss_type='g'):
     with tf.device('/cpu:0'):
         images = data.data_pipeline(FLAGS.batch_size)
-    if gpu_id == 0 and loss_type == 'g':
+    if gpu_id == 3 and loss_type == 'g':
         _, _, losses = model.build_graph_with_losses(
             FLAGS, images, FLAGS, summary=True, reuse=True)
     else:
