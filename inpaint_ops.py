@@ -324,26 +324,27 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1,
 
         # conv implementation for fuse scores to encourage large patches
         if fuse:
-            yi = tf.reshape(yi, [1, fs[1]*fs[2], bs[1]*bs[2], 1])
+            yi = tf.reshape(yi, [1, fs[1]*fs[2], bs[1]*bs[2], 1]) #1*32*32*1024-->1*1024*1024*1
+            yi = tf.nn.conv2d(yi, fuse_weight, strides=[1,1,1,1], padding='SAME')  #1*1024*1024*1
+            yi = tf.reshape(yi, [1, fs[1], fs[2], bs[1], bs[2]])  #1*32*32*32*32
+            yi = tf.transpose(yi, [0, 2, 1, 4, 3])   #1*32*32*32*32
+            yi = tf.reshape(yi, [1, fs[1]*fs[2], bs[1]*bs[2], 1])  #1*1024*1024*1
             yi = tf.nn.conv2d(yi, fuse_weight, strides=[1,1,1,1], padding='SAME')
-            yi = tf.reshape(yi, [1, fs[1], fs[2], bs[1], bs[2]])
+            yi = tf.reshape(yi, [1, fs[2], fs[1], bs[2], bs[1]])  #1*32*32*32*32
             yi = tf.transpose(yi, [0, 2, 1, 4, 3])
-            yi = tf.reshape(yi, [1, fs[1]*fs[2], bs[1]*bs[2], 1])
-            yi = tf.nn.conv2d(yi, fuse_weight, strides=[1,1,1,1], padding='SAME')
-            yi = tf.reshape(yi, [1, fs[2], fs[1], bs[2], bs[1]])
-            yi = tf.transpose(yi, [0, 2, 1, 4, 3])
-        yi = tf.reshape(yi, [1, fs[1], fs[2], bs[1]*bs[2]])
+        yi = tf.reshape(yi, [1, fs[1], fs[2], bs[1]*bs[2]])  #1*32*32*1024
 
         # softmax to match
-        yi *=  mm  # mask
+        yi *=  mm  # 1*1*1*1024  mask patch of background=1,foreground=0
         yi = tf.nn.softmax(yi*scale, 3)
         yi *=  mm  # mask
 
-        offset = tf.argmax(yi, axis=3, output_type=tf.int32)
-        offset = tf.stack([offset // fs[2], offset % fs[2]], axis=-1)
+        offset = tf.argmax(yi, axis=3, output_type=tf.int32)   #1*32*32
+        offset = tf.stack([offset // fs[2], offset % fs[2]], axis=-1)  #1*32*32*2
         # deconv for patch pasting
         # 3.1 paste center
-        wi_center = raw_wi[0]
+        wi_center = raw_wi[0]  #4*4*96*1024
+        ###1*64*64*96
         yi = tf.nn.conv2d_transpose(yi, wi_center, tf.concat([[1], raw_fs[1:]], axis=0), strides=[1,rate,rate,1]) / 4.
         y.append(yi)
         offsets.append(offset)

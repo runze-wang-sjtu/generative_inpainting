@@ -9,13 +9,13 @@ from inpaint_model import InpaintCAModel
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image', default='', type=str,
+parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/image/image_34.png', type=str,
                     help='The filename of image to be completed.')
-parser.add_argument('--mask', default='', type=str,
+parser.add_argument('--mask', default='/home/gdp/codes/generative_inpainting/test/mask/implant_34.png', type=str,
                     help='The filename of mask, value 255 indicates mask.')
-parser.add_argument('--output', default='output.png', type=str,
+parser.add_argument('--output', default='/home/gdp/codes/generative_inpainting/test/output/output_34.png', type=str,
                     help='Where to write output.')
-parser.add_argument('--checkpoint_dir', default='', type=str,
+parser.add_argument('--checkpoint_dir', default='/home/gdp/codes/generative_inpainting/model_logs/spine_minimask', type=str,
                     help='The directory of tensorflow checkpoint.')
 
 
@@ -61,3 +61,4 @@ if __name__ == "__main__":
         print('Model loaded.')
         result = sess.run(output)
         cv2.imwrite(args.output, result[0][:, :, ::-1])
+        print('Done')

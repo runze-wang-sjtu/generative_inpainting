@@ -7,12 +7,12 @@ memory_per_job: 32  # number of gpus each job need
 #gpu_type: 'Tesla V100-SXM3-32GB'
 
 # parameters
-name: spine # any name
-model_restore: 'model_logs/checkpoint'  # logs/places2_gated_conv
+name: spine_place_pretrain # any name
+model_restore: 'model_logs/spine_place_pretrain'  # logs/places2_gated_conv
 dataset: 'spine'  # 'tmnist', 'dtd', 'places2', 'celeba', 'imagenet', 'cityscapes'
 random_crop: False  # Set to false when dataset is 'celebahq', meaning only resize the images to img_shapes, instead of crop img_shapes from a larger raw image. This is useful when you train on images with different resolutions like places2. In these cases, please set random_crop to true.
 val: True  # true if you want to view validation results in tensorboard
-log_dir: logs/spine_minimask
+log_dir: logs/spine_place_pretrain
 
 gan: 'sngan'
 gan_loss_alpha: 1

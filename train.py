@@ -23,7 +23,6 @@ def multigpu_graph_def(model, FLAGS, data, gpu_id=3, loss_type='g'):
     else:
         raise ValueError('loss type is not supported.')
 
-
 if __name__ == "__main__":
     # training data
     FLAGS = ng.Config('inpaint.yml')
