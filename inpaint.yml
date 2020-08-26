@@ -40,8 +40,8 @@ data_flist:
     '/home/gdp/codes/generative_inpainting/data_flist/validation_flist_celea'
   ]
   spine: [
-    '/home/gdp/codes/generative_inpainting/data_flist/train_flist',
-    '/home/gdp/codes/generative_inpainting/data_flist/validation_flist'
+    '/data/rz/codes/generative_inpainting/data_flist/train_flist',
+    '/data/rz/codes/generative_inpainting/data_flist/validation_flist'
   ]
   # http://places2.csail.mit.edu/, please download the high-resolution dataset and use random_crop: True
   places2: [
@@ -60,7 +60,7 @@ height: 64
 width: 64
 max_delta_height: 32
 max_delta_width: 32
-batch_size: 8
+batch_size: 32
 vertical_margin: 64
 horizontal_margin: 64
 
