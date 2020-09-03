@@ -12,13 +12,19 @@ import SimpleITK as sitk
 from inpaint_model import InpaintCAModel
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/spine_nii/input/4614554.nii.gz', type=str,
+parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/spine_nii/input/verse537.nii.gz', type=str,
                     help='The filename of image to be completed.')
-parser.add_argument('--output', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/4614554_out_largemask.nii.gz', type=str,
+parser.add_argument('--mask', default='/home/gdp/codes/generative_inpainting/test/spine_nii/input/verse537_mask.nii.gz', type=str,
+                    help='Where to read implant.')
+parser.add_argument('--image_real', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_real.nii.gz', type=str,
+                    help='The filename of image to be completed.')
+parser.add_argument('--image_fake', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_fake.nii.gz', type=str,
+                    help='Where to write output.')
+parser.add_argument('--image_implant', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_image_implant.nii.gz', type=str,
                     help='Where to write output.')
 parser.add_argument('--checkpoint_dir', default='/home/gdp/codes/generative_inpainting/logs/spine_place_pretrain', type=str,
                     help='The directory of tensorflow checkpoint.')
-parser.add_argument('--implant_threshold', default=2000, type=int, help='The threshold for segment implant from spine image')
+# parser.add_argument('--implant_threshold', default=2000, type=int, help='The threshold for segment implant from spine image')
 parser.add_argument('--show', default=False, type=bool, help='If save slice image in 2D')
 
 def nii_to_array(img_sitk):
@@ -38,13 +44,21 @@ def implant_seg(img_sitk, threshold):
 
     return array_copy
 
-def dilated(x, iterations=3):
+def dilated(x, iterations=2):
 
     'x: np.array'
     kernel = np.ones((5,5), np.uint8)
     erosion = cv2.dilate(x, kernel, iterations=iterations)
 
     return erosion
+
+def reference(img_sitk, reference_sitk):
+
+    img_sitk.SetOrigin(reference_sitk.GetOrigin())
+    img_sitk.SetSpacing(reference_sitk.GetSpacing())
+    img_sitk.SetDirection(reference_sitk.GetDirection())
+
+    return img_sitk
 
 if __name__ == "__main__":
     FLAGS = ng.Config('inpaint.yml')
@@ -55,8 +69,20 @@ if __name__ == "__main__":
 
     img_sitk = sitk.ReadImage(args.image)
     image_3d = nii_to_array(img_sitk)
+    mask_sitk = sitk.ReadImage(args.mask)
+    mask_3d = implant_seg(mask_sitk, threshold=0.5)
 
-    mask_3d = implant_seg(img_sitk, threshold=2000)
+    mask_zero_one = mask_3d / 255
+    image_implant = image_3d * (1 - mask_zero_one) + mask_zero_one * 255
+
+    image_real = sitk.GetImageFromArray(image_3d)
+    image_real = reference(image_real, reference_sitk=img_sitk)
+    image_implant = sitk.GetImageFromArray(image_implant)
+    image_implant = reference(image_implant, reference_sitk=img_sitk)
+    sitk.WriteImage(image_real, args.image_real)
+    sitk.WriteImage(image_implant, args.image_implant)
+
+    # mask_3d = implant_seg(img_sitk, threshold=2000)
 
     assert image_3d.shape == mask_3d.shape
 
@@ -91,10 +117,10 @@ if __name__ == "__main__":
     for i in range(image_3d.shape[0]):
 
         image = image_3d[i, :, :]
+        mask = mask_3d[i, :, :]
+
         image = np.stack([image, image, image], axis=0)
         image = image.transpose((1,2,0)).astype('uint8')
-        mask = mask_3d[i, :, :]
-        mask = dilated(mask)
         mask = np.stack([mask, mask, mask], axis=0)
         mask = mask.transpose((1,2,0)).astype('uint8')
         assert image.shape == mask.shape
@@ -112,7 +138,8 @@ if __name__ == "__main__":
 
     results = np.array(results)
     print('Final results shape: {}'.format(results.shape))
-    final = sitk.GetImageFromArray(results)
-    final.SetSpacing(img_sitk.GetSpacing())
-    sitk.WriteImage(final, args.output)
+
+    results = sitk.GetImageFromArray(results)
+    results = reference(results, reference_sitk=img_sitk)
+    sitk.WriteImage(results, args.image_fake)
 

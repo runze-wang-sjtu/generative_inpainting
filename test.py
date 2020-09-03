@@ -9,11 +9,11 @@ from inpaint_model import InpaintCAModel
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/image/2539767_54.png', type=str,
+parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/image/image_23.png', type=str,
                     help='The filename of image to be completed.')
-parser.add_argument('--mask', default='/home/gdp/codes/generative_inpainting/test/mask/implant_56.png', type=str,
+parser.add_argument('--mask', default='/home/gdp/codes/generative_inpainting/test/mask/implant_23.png', type=str,
                     help='The filename of mask, value 255 indicates mask.')
-parser.add_argument('--output', default='/home/gdp/codes/generative_inpainting/test/output/2539767_54.png', type=str,
+parser.add_argument('--output', default='/home/gdp/codes/generative_inpainting/test/output/output_23.png', type=str,
                     help='Where to write output.')
 parser.add_argument('--checkpoint_dir', default='/home/gdp/codes/generative_inpainting/logs/spine_place_pretrain', type=str,
                     help='The directory of tensorflow checkpoint.')
