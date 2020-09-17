@@ -11,21 +11,56 @@ import SimpleITK as sitk
 
 from inpaint_model import InpaintCAModel
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image', default='/home/gdp/codes/generative_inpainting/test/spine_nii/input/verse537.nii.gz', type=str,
-                    help='The filename of image to be completed.')
-parser.add_argument('--mask', default='/home/gdp/codes/generative_inpainting/test/spine_nii/input/verse537_mask.nii.gz', type=str,
-                    help='Where to read implant.')
-parser.add_argument('--image_real', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_real.nii.gz', type=str,
-                    help='The filename of image to be completed.')
-parser.add_argument('--image_fake', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_fake.nii.gz', type=str,
-                    help='Where to write output.')
-parser.add_argument('--image_implant', default='/home/gdp/codes/generative_inpainting/test/spine_nii/output/verse537_image_implant.nii.gz', type=str,
-                    help='Where to write output.')
-parser.add_argument('--checkpoint_dir', default='/home/gdp/codes/generative_inpainting/logs/spine_place_pretrain', type=str,
-                    help='The directory of tensorflow checkpoint.')
-# parser.add_argument('--implant_threshold', default=2000, type=int, help='The threshold for segment implant from spine image')
-parser.add_argument('--show', default=False, type=bool, help='If save slice image in 2D')
+REALITY=True
+
+if REALITY:
+    FILENAME = '4634640'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--image', default='/data/rz/codes/generative_inpainting/test/reality/image/{}.nii.gz'.format(FILENAME), type=str,
+                        help='The filename of image to be completed.')
+    parser.add_argument('--mask', default='/data/rz/codes/generative_inpainting/test/reality/mask/{}.nii.gz'.format(FILENAME), type=str,
+                        help='Where to read implant.')
+    parser.add_argument('--image_real', default='/data/rz/codes/generative_inpainting/test/reality/output/{}_real.nii.gz'.format(FILENAME), type=str,
+                        help='The filename of image to be completed.')
+    parser.add_argument('--image_fake', default='/data/rz/codes/generative_inpainting/test/reality/output/{}_fake.nii.gz'.format(FILENAME), type=str,
+                        help='Where to write output.')
+    parser.add_argument('--image_implant', default='/data/rz/codes/generative_inpainting/test/reality/output/{}_implant.nii.gz'.format(FILENAME), type=str,
+                        help='Where to write output.')
+    parser.add_argument('--checkpoint_dir', default='/data/rz/codes/generative_inpainting/model_logs/spine_place_pretrain', type=str,
+                        help='The directory of tensorflow checkpoint.')
+    # parser.add_argument('--implant_threshold', default=2000, type=int, help='The threshold for segment implant from spine image')
+    parser.add_argument('--show', default=False, type=bool, help='If save slice image in 2D')
+
+else:
+    FILENAME = 'verse065'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--image',
+                        default='/data/rz/codes/generative_inpainting/test/simulation/image/{}_512.nii.gz'.format(
+                            FILENAME), type=str,
+                        help='The filename of image to be completed.')
+    parser.add_argument('--mask',
+                        default='/data/rz/codes/generative_inpainting/test/simulation/mask/{}-Mask.nii'.format(
+                            FILENAME.split('verse')[-1]), type=str,
+                        help='Where to read implant.')
+    parser.add_argument('--image_real',
+                        default='/data/rz/codes/generative_inpainting/test/simulation/output_placetrain/{}_real.nii.gz'.format(
+                            FILENAME), type=str,
+                        help='The filename of image to be completed.')
+    parser.add_argument('--image_fake',
+                        default='/data/rz/codes/generative_inpainting/test/simulation/output_placetrain/{}_fake.nii.gz'.format(
+                            FILENAME), type=str,
+                        help='Where to write output.')
+    parser.add_argument('--image_implant',
+                        default='/data/rz/codes/generative_inpainting/test/simulation/output_placetrain/{}_implant.nii.gz'.format(
+                            FILENAME), type=str,
+                        help='Where to write output.')
+    parser.add_argument('--checkpoint_dir', default='/data/rz/codes/generative_inpainting/model_logs/spine_place_pretrain',
+                        type=str,
+                        help='The directory of tensorflow checkpoint.')
+    # parser.add_argument('--implant_threshold', default=2000, type=int, help='The threshold for segment implant from spine image')
+    parser.add_argument('--show', default=False, type=bool, help='If save slice image in 2D')
 
 def nii_to_array(img_sitk):
 
@@ -33,7 +68,7 @@ def nii_to_array(img_sitk):
     img_array = img_array - np.min(img_array)
     img = img_array / np.max(img_array) * 255
     ###shape: z*x*y  range:[0,255]
-    return img
+    return img.astype('uint8')
 
 def implant_seg(img_sitk, threshold):
 
@@ -46,7 +81,7 @@ def implant_seg(img_sitk, threshold):
 
 def dilated(x, iterations=2):
 
-    'x: np.array'
+    # 'x: np.array'
     kernel = np.ones((5,5), np.uint8)
     erosion = cv2.dilate(x, kernel, iterations=iterations)
 
@@ -73,24 +108,23 @@ if __name__ == "__main__":
     mask_3d = implant_seg(mask_sitk, threshold=0.5)
 
     mask_zero_one = mask_3d / 255
-    image_implant = image_3d * (1 - mask_zero_one) + mask_zero_one * 255
+    image_implant_ = image_3d * (1 - mask_zero_one) + mask_zero_one * 255
 
     image_real = sitk.GetImageFromArray(image_3d)
     image_real = reference(image_real, reference_sitk=img_sitk)
-    image_implant = sitk.GetImageFromArray(image_implant)
-    image_implant = reference(image_implant, reference_sitk=img_sitk)
+
     sitk.WriteImage(image_real, args.image_real)
-    sitk.WriteImage(image_implant, args.image_implant)
 
     # mask_3d = implant_seg(img_sitk, threshold=2000)
 
-    assert image_3d.shape == mask_3d.shape
+    assert image_implant_.shape == mask_3d.shape
 
-    z, h, w = image_3d.shape
+
+    z, h, w = image_implant_.shape
     grid = 8
-    image_3d = image_3d[:, :h//grid*grid, :w//grid*grid]
+    image_implant_ = image_implant_[:, :h//grid*grid, :w//grid*grid]
     mask_3d = mask_3d[:, :h//grid*grid, :w//grid*grid]
-    print('Shape of image: {}'.format(image_3d.shape))
+    print('Shape of image: {}'.format(image_implant_.shape))
 
     sess_config = tf.ConfigProto()
     sess_config.gpu_options.allow_growth = True
@@ -114,11 +148,15 @@ if __name__ == "__main__":
     print('Model loaded.')
 
     results = []
-    for i in range(image_3d.shape[0]):
+    masks = []
+    for i in range(image_implant_.shape[0]):
 
-        image = image_3d[i, :, :]
+        image = image_implant_[i, :, :]
         mask = mask_3d[i, :, :]
-
+        if REALITY:
+            mask = dilated(mask)
+            pass
+        masks.append(mask)
         image = np.stack([image, image, image], axis=0)
         image = image.transpose((1,2,0)).astype('uint8')
         mask = np.stack([mask, mask, mask], axis=0)
@@ -134,7 +172,7 @@ if __name__ == "__main__":
             cv2.imwrite(os.path.join(args.output, '{}'.format(i)), result)
 
         results.append(result[0,:,:,0])
-        print('Processed: level_{}/{}'.format(i, image_3d.shape[0]))
+        print('Processed: level_{}/{}'.format(i, image_implant_.shape[0]))
 
     results = np.array(results)
     print('Final results shape: {}'.format(results.shape))
@@ -142,4 +180,13 @@ if __name__ == "__main__":
     results = sitk.GetImageFromArray(results)
     results = reference(results, reference_sitk=img_sitk)
     sitk.WriteImage(results, args.image_fake)
+
+    masks = np.array(masks)
+    mask_zero_one = masks / 255
+    image_implant_ = image_3d * (1 - mask_zero_one) + mask_zero_one * 255
+    image_implant = sitk.GetImageFromArray(image_implant_)
+    image_implant = reference(image_implant, reference_sitk=img_sitk)
+    sitk.WriteImage(image_implant, args.image_implant)
+
+    print('{} has Done'.format(FILENAME))
 
